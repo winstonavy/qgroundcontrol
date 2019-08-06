@@ -199,7 +199,7 @@ Item {
                 backRadius:     4
                 heightFactor:   0.3333
                 showBorder:     true
-                enabled:        _flightPermit !== AirspaceFlightPlanProvider.PermitNone && QGroundControl.airspaceManager.flightPlan.dirty
+                enabled:        true//_flightPermit !== AirspaceFlightPlanProvider.PermitNone && QGroundControl.airspaceManager.flightPlan.dirty
                 visible:        planView
                 width:          ScreenTools.defaultFontPixelWidth * 12
                 onClicked: {

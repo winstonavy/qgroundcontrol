@@ -32,6 +32,10 @@
 #include "Airmap_api_key.h"
 #endif
 
+#ifndef winDebug
+#define winDebug(x) std::cout << x << std::endl
+#endif
+
 using namespace airmap;
 
 QGC_LOGGING_CATEGORY(AirMapManagerLog, "AirMapManagerLog")
@@ -168,11 +172,27 @@ AirMapManager::_settingsTimeout()
         auto credentials    = Credentials{};
         credentials.api_key = _shared.settings().apiKey.toStdString();
         auto configuration  = Client::default_production_configuration(credentials);
-        configuration.telemetry.host = "udp.telemetry.k8s.airmap.io";
-        configuration.telemetry.port = 7070;
+        configuration.host = "asp.api.airmap.com";
+        configuration.telemetry.host = "asp.telemetry.airmap.com";
+        configuration.telemetry.port = 16060;
+        configuration.traffic.host = "asp.mqtt.airmap.com";
+        configuration.sso.host = "https://asp.auth.airmap.com/realms/airmap/protocol/openid-connect/token";
+        winDebug("AirMapManager: Airmap host: " << configuration.host);
+        winDebug("AirMapManager: SSO host: " << configuration.sso.host);
+        winDebug("AirMapManager: SSO port: " << configuration.sso.port);
+        winDebug("AirMapManager: Telemetry host: " << configuration.telemetry.host);
+        winDebug("AirMapManager: Telemetry host: " << configuration.telemetry.port);
+        winDebug("AirMapManager: Traffic host: " << configuration.traffic.host);
+        winDebug("AirMapManager: Traffic port: " << configuration.traffic.port);
+        winDebug("AirMapManager: Credentials username: " << configuration.credentials.oauth.get().username);
+        winDebug("AirMapManager: Credentials password: " << configuration.credentials.oauth.get().password);
+        winDebug("AirMapManager: Credentials client_id: " << configuration.credentials.oauth.get().client_id);
+        winDebug("AirMapManager: Credentials device_id: " << configuration.credentials.oauth.get().device_id);
+        winDebug("AirMapManager: Credentials id (anonymous): " << configuration.credentials.anonymous.get().id);
         qt::Client::create(configuration, _dispatchingLogger, this, [this](const qt::Client::CreateResult& result) {
             if (result) {
                 qCDebug(AirMapManagerLog) << "Successfully created airmap::qt::Client instance";
+                winDebug("AirMapManager: Successfully created airmap::qt::Client instance");
                 _shared.setClient(result.value());
                 emit connectedChanged();
                 _connectStatus = tr("AirMap Enabled");
@@ -181,6 +201,7 @@ AirMapManager::_settingsTimeout()
                 _shared.login();
             } else {
                 qWarning("Failed to create airmap::qt::Client instance");
+                winDebug("AirMapManager: Failed to create airmap::qt::Client instance");
                 QString description = QString::fromStdString(result.error().description() ? result.error().description().get() : "");
                 QString error = QString::fromStdString(result.error().message());
                 _error(tr("Failed to create airmap::qt::Client instance"),

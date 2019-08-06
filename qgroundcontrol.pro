@@ -388,6 +388,7 @@ INCLUDEPATH += \
 #
 
 HEADERS += \
+    src/Airmap/manualauthenticate.h \
     src/api/QGCCorePlugin.h \
     src/api/QGCOptions.h \
     src/api/QGCSettings.h \
@@ -1176,6 +1177,8 @@ contains (DEFINES, QGC_AIRMAP_ENABLED) {
     SOURCES += \
         src/Airmap/dummy/AirspaceManager.cc
 }
+
+LIBS += -lcurl
 
 #-------------------------------------------------------------------------------------
 # Video Streaming

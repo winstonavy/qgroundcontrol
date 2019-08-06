@@ -12,6 +12,11 @@
 #include "AirspaceVehicleManager.h"
 #include "Vehicle.h"
 #include "MissionItem.h"
+#include <iostream>
+
+#ifndef winDebug
+#define winDebug(x) std::cout << x << std::endl;
+#endif
 
 AirspaceVehicleManager::AirspaceVehicleManager(const Vehicle& vehicle)
     : _vehicle(vehicle)
@@ -23,11 +28,14 @@ AirspaceVehicleManager::AirspaceVehicleManager(const Vehicle& vehicle)
 
 void AirspaceVehicleManager::_vehicleArmedChanged(bool armed)
 {
+    winDebug("AirspaceVehicleManager: Armed changed detected");
     if (armed) {
+        winDebug("AirspaceVehicleManager: Armed");
         qCDebug(AirspaceManagementLog) << "Starting telemetry";
         startTelemetryStream();
         _vehicleWasInMissionMode = _vehicle.flightMode() == _vehicle.missionFlightMode();
     } else {
+        winDebug("AirspaceVehicleManager: Disarmed");
         qCDebug(AirspaceManagementLog) << "Stopping telemetry";
         stopTelemetryStream();
         // end the flight if we were in mission mode during arming or disarming

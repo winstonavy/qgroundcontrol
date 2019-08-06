@@ -23,6 +23,10 @@
 #include "airmap/geometry.h"
 #include "airmap/pilots.h"
 
+#ifndef winDebug
+#define winDebug(x) std::cout << x << std::endl;
+#endif
+
 using namespace airmap;
 
 //-----------------------------------------------------------------------------
@@ -191,13 +195,16 @@ AirMapFlightPlanManager::flightDuration() const
 void
 AirMapFlightPlanManager::startFlightPlanning(PlanMasterController *planController)
 {
+    winDebug("AirmapFlightPlanManager: Starting Flight Planning");
     if (!_shared.client()) {
         qCDebug(AirMapManagerLog) << "No AirMap client instance. Will not create a flight";
-        return;
+        winDebug("AirMapFlightPlanManager: No AirMap client instance. Will not create a flight");
+        //return;
     }
 
     if (_state != State::Idle) {
         qCWarning(AirMapManagerLog) << "AirMapFlightPlanManager::startFlightPlanning: State not idle";
+        winDebug("AirMapFlightPlanManager::startFlightPlanning: State not idle");
         return;
     }
 
@@ -222,6 +229,7 @@ AirMapFlightPlanManager::startFlightPlanning(PlanMasterController *planControlle
 void
 AirMapFlightPlanManager::submitFlightPlan()
 {
+    winDebug("AirmapFlightPnanManager: Submitting Flight Plan");
     if(flightPlanID().isEmpty()) {
         qCWarning(AirMapManagerLog) << "Submit flight with no flight plan.";
         return;
@@ -251,12 +259,14 @@ AirMapFlightPlanManager::submitFlightPlan()
             emit flightPermitStatusChanged();
         }
     });
+    winDebug("AirmapFlightPlanManager: _flightPermitStatus = " << _flightPermitStatus);
 }
 
 //-----------------------------------------------------------------------------
 void
 AirMapFlightPlanManager::updateFlightPlan()
 {
+    winDebug("AirmapFlightPlanManager: Updating Flight Plan");
     //-- Are we enabled?
     if(!qgcApp()->toolbox()->settingsManager()->airMapSettings()->enableAirMap()->rawValue().toBool()) {
         return;
@@ -269,6 +279,7 @@ AirMapFlightPlanManager::updateFlightPlan()
     emit flightPermitStatusChanged();
     setDirty(false);
     _updateFlightPlan(true);
+    winDebug("AirmapFlightPlanManager: _flightPermitStatus = " << _flightPermitStatus);
 }
 
 //-----------------------------------------------------------------------------
@@ -376,7 +387,7 @@ void
 AirMapFlightPlanManager::_createFlightPlan()
 {
     _flight.reset();
-
+    winDebug("AirMapFlightPlanManager: Creating New Flight Plan");
     //-- Get flight data
     if(!_collectFlightDtata()) {
         return;
@@ -387,6 +398,12 @@ AirMapFlightPlanManager::_createFlightPlan()
     qCDebug(AirMapManagerLog) << "Bounding box:" << _flight.bc.pointNW << _flight.bc.pointSE;
     qCDebug(AirMapManagerLog) << "Flight Start:" << flightStartTime().toString();
     qCDebug(AirMapManagerLog) << "Flight Duration:  " << flightDuration();
+
+    winDebug("About to create flight plan");
+    winDebug("Takeoff - Lat: " << _flight.takeoffCoord.latitude() << " Long: " << _flight.takeoffCoord.longitude() << " Alt: " << _flight.takeoffCoord.altitude());
+    winDebug("Bounding box - NW: " << _flight.bc.pointNW.latitude() << "," << _flight.bc.pointNW.longitude() << " SE: " << _flight.bc.pointSE.latitude() << _flight.bc.pointSE.longitude());
+    winDebug("Flight Start:" << flightStartTime().toString().toUtf8().constData());
+    winDebug("Flight Duration:  " << flightDuration());
 
     if (_shared.pilotID().isEmpty() && !_shared.settings().userName.isEmpty() && !_shared.settings().password.isEmpty()) {
         //-- Need to get the pilot id before uploading the flight plan
@@ -422,6 +439,7 @@ AirMapFlightPlanManager::_createFlightPlan()
 
     _flightPermitStatus = AirspaceFlightPlanProvider::PermitPending;
     emit flightPermitStatusChanged();
+    winDebug("AirmapFlightPlanManager: _flightPermitStatus = " << _flightPermitStatus);
 }
 
 //-----------------------------------------------------------------------------
@@ -660,6 +678,7 @@ void
 AirMapFlightPlanManager::_pollBriefing()
 {
     qCDebug(AirMapManagerLog) << "Poll Briefing. State:" << static_cast<int>(_state);
+    winDebug("AirMapFlightPlanManager: Poll Briefing. State:" << static_cast<int>(_state));
     if(_state != State::Idle) {
         QTimer::singleShot(100, this, &AirMapFlightPlanManager::_pollBriefing);
         return;

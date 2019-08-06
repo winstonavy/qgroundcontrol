@@ -15,6 +15,10 @@
 #include "airmap/telemetry.h"
 #include "airmap/flights.h"
 
+#ifndef winDebug
+#define winDebug(x) std::cout << x << std::endl;
+#endif
+
 using namespace airmap;
 
 //-----------------------------------------------------------------------------
@@ -101,6 +105,7 @@ AirMapTelemetry::_handleGlobalPositionInt(const mavlink_message_t& message)
 void
 AirMapTelemetry::startTelemetryStream(const QString& flightID)
 {
+    winDebug("AirMapTelemetry: Transmitting Telemetry");
     if (_state != State::Idle) {
         qCWarning(AirMapManagerLog) << "Not starting telemetry: not in idle state:" << static_cast<int>(_state);
         return;
@@ -119,15 +124,15 @@ AirMapTelemetry::startTelemetryStream(const QString& flightID)
     _shared.client()->flights().start_flight_communications(params, [this, isAlive](const Flights::StartFlightCommunications::Result& result) {
         if (!isAlive.lock()) return;
         if (_state != State::StartCommunication) return;
-        if (result) {
+//        if (result) {
             _key = result.value().key;
             _state = State::Streaming;
-        } else {
-            _state = State::Idle;
-            QString description = QString::fromStdString(result.error().description() ? result.error().description().get() : "");
-            emit error("Failed to start telemetry streaming",
-                    QString::fromStdString(result.error().message()), description);
-        }
+//        } else {
+//            _state = State::Idle;
+//            QString description = QString::fromStdString(result.error().description() ? result.error().description().get() : "");
+//            emit error("Failed to start telemetry streaming",
+//                    QString::fromStdString(result.error().message()), description);
+//        }
     });
     _timerLastSent.start();
 }
@@ -140,6 +145,7 @@ AirMapTelemetry::stopTelemetryStream()
         return;
     }
     qCInfo(AirMapManagerLog) << "Stopping Telemetry stream with flightID" << _flightID;
+    winDebug("Stopping Telemetry stream with flightID" << _flightID.toUtf8().constData());
     _state = State::EndCommunication;
     Flights::EndFlightCommunications::Parameters params;
     params.authorization = _shared.loginToken().toStdString();

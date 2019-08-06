@@ -22,6 +22,10 @@
 #include "airmap/flight_plan.h"
 #include "airmap/ruleset.h"
 
+#ifndef winDebug
+#define winDebug(x) std::cout << x << std::endl;
+#endif
+
 class AirMapRuleFeature;
 class PlanMasterController;
 

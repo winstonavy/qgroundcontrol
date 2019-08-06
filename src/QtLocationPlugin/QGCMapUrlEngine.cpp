@@ -194,7 +194,7 @@ UrlFactory::getTileURL(MapType type, int x, int y, int zoom, QNetworkAccessManag
             return request;
 
         case AirmapElevation:
-            request.setRawHeader("Referrer", "https://api.airmap.com/");
+            request.setRawHeader("Referrer", "https://asp.api.airmap.com/");
             break;
 
         default:

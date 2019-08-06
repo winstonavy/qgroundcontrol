@@ -17,6 +17,10 @@
 #include "QGCApplication.h"
 #include "SettingsManager.h"
 
+#ifndef winDebug
+#define winDebug(x) std::cout << x << std::endl;
+#endif
+
 //-----------------------------------------------------------------------------
 AirMapVehicleManager::AirMapVehicleManager(AirMapSharedState& shared, const Vehicle& vehicle)
     : AirspaceVehicleManager(vehicle)
@@ -39,17 +43,22 @@ AirMapVehicleManager::AirMapVehicleManager(AirMapSharedState& shared, const Vehi
 void
 AirMapVehicleManager::startTelemetryStream()
 {
-    AirMapFlightPlanManager* planMgr = qobject_cast<AirMapFlightPlanManager*>(qgcApp()->toolbox()->airspaceManager()->flightPlan());
-    if (!planMgr->flightID().isEmpty()) {
+    winDebug("AirMapVehicleManager: Starting Telemetry transmission");
+    //AirMapFlightPlanManager* planMgr = qobject_cast<AirMapFlightPlanManager*>(qgcApp()->toolbox()->airspaceManager()->flightPlan());
+    //if (!planMgr->flightID().isEmpty()) {
         //-- Is telemetry enabled?
         if(qgcApp()->toolbox()->settingsManager()->airMapSettings()->enableTelemetry()->rawValue().toBool()) {
             //-- TODO: This will start telemetry using the current flight ID in memory (current flight in AirMapFlightPlanManager)
             qCDebug(AirMapManagerLog) << "AirMap telemetry stream enabled";
-            _telemetry.startTelemetryStream(planMgr->flightID());
+            winDebug("AirMapVehicleManager: AirMap telemetry stream enabled");
+            //_telemetry.startTelemetryStream(planMgr->flightID());
+            QString tempID = "AVYtest";
+            _telemetry.startTelemetryStream(tempID);
         }
-    } else {
+    /*} else {
         qCDebug(AirMapManagerLog) << "AirMap telemetry stream not possible (No Flight ID)";
-    }
+        winDebug("AirMapVehicleManager: AirMap telemetry stream not possible (No Flight ID)");
+    }*/
 }
 
 //-----------------------------------------------------------------------------
