@@ -29,7 +29,8 @@ ApplicationWindow {
     visible:        true
 
     Component.onCompleted: {
-        if(ScreenTools.isMobile) {
+        //-- Full screen on mobile or tiny screens
+        if(ScreenTools.isMobile || Screen.height / ScreenTools.realPixelDensity < 120) {
             mainWindow.showFullScreen()
         } else {
             width   = ScreenTools.isMobile ? Screen.width  : Math.min(250 * Screen.pixelDensity, Screen.width)
@@ -147,6 +148,10 @@ ApplicationWindow {
         mainWindowDialog.dialogTitle = title
         mainWindowDialog.dialogButtons = buttons
         mainWindowDialog.open()
+        if(buttons & StandardButton.Cancel || buttons & StandardButton.Close || buttons & StandardButton.Discard || buttons & StandardButton.Abort || buttons & StandardButton.Ignore) {
+            mainWindowDialog.closePolicy = Popup.CloseOnEscape | Popup.CloseOnPressOutside;
+            mainWindowDialog.interactive = true;
+        }
     }
 
     Drawer {

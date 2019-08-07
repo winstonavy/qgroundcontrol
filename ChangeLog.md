@@ -6,6 +6,7 @@ Note: This file only contains high level features or important fixes.
 
 ### 3.6.0 - Daily Build
 
+* Added ability to set a joystick button to be single action or repeated action while the button is held down.
 * Rework joysticks. Fixed several issues and updated setup UI.
 * Adding support for UDP RTP h.265 video streams
 * For text to speech engine on Linux to English (all messages are in English)
@@ -36,6 +37,8 @@ Note: This file only contains high level features or important fixes.
 * Major rewrite and bug fix pass through Structure Scan. Previous version had such bad problems that it can no longer be supported. Plans with Structure Scan will need to be recreated. New QGC will not load old Structure Scan plans.
 
 ### 3.5.4 - Not yet released
+* Update windows drivers
+* Add support for FMUK66 flashing/connection
 * Guard against null geometry coming from gstreamer which can cause crashes
 * Add .apj file selection support to custom firmware flash
 
