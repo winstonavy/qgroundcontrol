@@ -23,11 +23,9 @@
 #include "airmap/geometry.h"
 #include "airmap/pilots.h"
 
-#ifndef winDebug
-#define winDebug(x) std::cout << x << std::endl;
-#endif
-
 using namespace airmap;
+
+QGC_LOGGING_CATEGORY(AirMapFlightPlanManagerLog, "AirMapFlightPlanManagerLog")
 
 //-----------------------------------------------------------------------------
 AirMapFlightAuthorization::AirMapFlightAuthorization(const Evaluation::Authorization auth, QObject *parent)
@@ -135,6 +133,9 @@ AirMapFlightPlanManager::~AirMapFlightPlanManager()
 {
     _advisories.deleteListAndContents();
     _rulesets.deleteListAndContents();
+    if (!flightID().isEmpty()) {
+        endFlight(flightID());
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -195,16 +196,14 @@ AirMapFlightPlanManager::flightDuration() const
 void
 AirMapFlightPlanManager::startFlightPlanning(PlanMasterController *planController)
 {
-    winDebug("AirmapFlightPlanManager: Starting Flight Planning");
+    qCInfo(AirMapFlightPlanManagerLog()) << "Starting Flight Planning";
     if (!_shared.client()) {
-        qCDebug(AirMapManagerLog) << "No AirMap client instance. Will not create a flight";
-        winDebug("AirMapFlightPlanManager: No AirMap client instance. Will not create a flight");
-        //return;
+        qCInfo(AirMapManagerLog) << "No AirMap client instance. Will not create a flight";
+        return;
     }
 
     if (_state != State::Idle) {
         qCWarning(AirMapManagerLog) << "AirMapFlightPlanManager::startFlightPlanning: State not idle";
-        winDebug("AirMapFlightPlanManager::startFlightPlanning: State not idle");
         return;
     }
 
@@ -229,7 +228,7 @@ AirMapFlightPlanManager::startFlightPlanning(PlanMasterController *planControlle
 void
 AirMapFlightPlanManager::submitFlightPlan()
 {
-    winDebug("AirmapFlightPnanManager: Submitting Flight Plan");
+    qCInfo(AirMapFlightPlanManagerLog()) << "Submitting Flight Plan";
     if(flightPlanID().isEmpty()) {
         qCWarning(AirMapManagerLog) << "Submit flight with no flight plan.";
         return;
@@ -241,6 +240,8 @@ AirMapFlightPlanManager::submitFlightPlan()
     params.authorization = _shared.loginToken().toStdString();
     params.id            = flightPlanID().toStdString();
     std::weak_ptr<LifetimeChecker> isAlive(_instance);
+    _flightPermitStatus = AirspaceFlightPlanProvider::PermitPending;
+    emit flightPermitStatusChanged();
     _shared.client()->flight_plans().submit(params, [this, isAlive](const FlightPlans::Submit::Result& result) {
         if (!isAlive.lock()) return;
         if (_state != State::FlightSubmit) return;
@@ -250,23 +251,27 @@ AirMapFlightPlanManager::submitFlightPlan()
             _state = State::Idle;
             _pollBriefing();
             emit flightIDChanged(_flightId);
+            qCInfo(AirMapFlightPlanManagerLog()) << "Airmap Flight ID: " << _flightId;
         } else {
             QString description = QString::fromStdString(result.error().description() ? result.error().description().get() : "");
             emit error("Failed to submit Flight Plan",
                     QString::fromStdString(result.error().message()), description);
+            qCInfo(AirMapFlightPlanManagerLog()) << "Faield to submit Flight Plan: "
+                                                 << QString::fromStdString(result.error().message())
+                                                 << " "  << description;
             _state = State::Idle;
             _flightPermitStatus = AirspaceFlightPlanProvider::PermitRejected;
             emit flightPermitStatusChanged();
         }
     });
-    winDebug("AirmapFlightPlanManager: _flightPermitStatus = " << _flightPermitStatus);
+    qCInfo(AirMapFlightPlanManagerLog()) << "_flightPermitStatus = " << _flightPermitStatus;
 }
 
 //-----------------------------------------------------------------------------
 void
 AirMapFlightPlanManager::updateFlightPlan()
 {
-    winDebug("AirmapFlightPlanManager: Updating Flight Plan");
+    qCInfo(AirMapFlightPlanManagerLog()) << "Updating Flight Plan";
     //-- Are we enabled?
     if(!qgcApp()->toolbox()->settingsManager()->airMapSettings()->enableAirMap()->rawValue().toBool()) {
         return;
@@ -279,18 +284,18 @@ AirMapFlightPlanManager::updateFlightPlan()
     emit flightPermitStatusChanged();
     setDirty(false);
     _updateFlightPlan(true);
-    winDebug("AirmapFlightPlanManager: _flightPermitStatus = " << _flightPermitStatus);
+    qCInfo(AirMapFlightPlanManagerLog()) << "_flightPermitStatus = " << _flightPermitStatus;
 }
 
 //-----------------------------------------------------------------------------
 void
 AirMapFlightPlanManager::endFlight(QString flightID)
 {
-    qCDebug(AirMapManagerLog) << "End flight";
+    qCInfo(AirMapManagerLog) << "End flight";
     _flightToEnd = flightID;
     if (_shared.pilotID().isEmpty()) {
         //-- Need to get the pilot id
-        qCDebug(AirMapManagerLog) << "Getting pilot ID";
+        qCInfo(AirMapManagerLog) << "Getting pilot ID";
         _state = State::GetPilotID;
         std::weak_ptr<LifetimeChecker> isAlive(_instance);
         _shared.doRequestWithLogin([this, isAlive](const QString& login_token) {
@@ -303,7 +308,7 @@ AirMapFlightPlanManager::endFlight(QString flightID)
                 if (result) {
                     QString pilotID = QString::fromStdString(result.value().id);
                     _shared.setPilotID(pilotID);
-                    qCDebug(AirMapManagerLog) << "Got Pilot ID:" << pilotID;
+                    qCInfo(AirMapManagerLog) << "Got Pilot ID:" << pilotID;
                     _state = State::Idle;
                     _endFlight();
                 } else {
@@ -327,12 +332,12 @@ AirMapFlightPlanManager::_endFlight()
         qCDebug(AirMapManagerLog) << "End non existing flight";
         return;
     }
-    qCDebug(AirMapManagerLog) << "End Flight. State:" << static_cast<int>(_state);
+    qCInfo(AirMapManagerLog) << "End Flight. State:" << static_cast<int>(_state);
     if(_state != State::Idle) {
         QTimer::singleShot(100, this, &AirMapFlightPlanManager::_endFlight);
         return;
     }
-    qCDebug(AirMapManagerLog) << "Ending flight:" << _flightToEnd;
+    qCInfo(AirMapManagerLog) << "Ending flight:" << _flightToEnd;
     _state = State::FlightEnd;
     std::weak_ptr<LifetimeChecker> isAlive(_instance);
     Flights::EndFlight::Parameters params;
@@ -343,7 +348,7 @@ AirMapFlightPlanManager::_endFlight()
         if (!isAlive.lock()) return;
         if (_state != State::FlightEnd) return;
         if (result) {
-            qCDebug(AirMapManagerLog) << "Flight Ended";
+            qCInfo(AirMapManagerLog) << "Flight Ended";
             int idx = _flightList.findFlightID(_flightToEnd);
             if(idx >= 0) {
                 AirMapFlightInfo* pInfo = qobject_cast<AirMapFlightInfo*>(_flightList.get(idx));
@@ -387,7 +392,7 @@ void
 AirMapFlightPlanManager::_createFlightPlan()
 {
     _flight.reset();
-    winDebug("AirMapFlightPlanManager: Creating New Flight Plan");
+    qCInfo(AirMapFlightPlanManagerLog()) << "Creating New Flight Plan";
     //-- Get flight data
     if(!_collectFlightDtata()) {
         return;
@@ -399,11 +404,15 @@ AirMapFlightPlanManager::_createFlightPlan()
     qCDebug(AirMapManagerLog) << "Flight Start:" << flightStartTime().toString();
     qCDebug(AirMapManagerLog) << "Flight Duration:  " << flightDuration();
 
-    winDebug("About to create flight plan");
-    winDebug("Takeoff - Lat: " << _flight.takeoffCoord.latitude() << " Long: " << _flight.takeoffCoord.longitude() << " Alt: " << _flight.takeoffCoord.altitude());
-    winDebug("Bounding box - NW: " << _flight.bc.pointNW.latitude() << "," << _flight.bc.pointNW.longitude() << " SE: " << _flight.bc.pointSE.latitude() << _flight.bc.pointSE.longitude());
-    winDebug("Flight Start:" << flightStartTime().toString().toUtf8().constData());
-    winDebug("Flight Duration:  " << flightDuration());
+    qCInfo(AirMapFlightPlanManagerLog()) << "About to create flight plan";
+    qCInfo(AirMapFlightPlanManagerLog()) << "Takeoff - Lat: " << _flight.takeoffCoord.latitude() << " Long: " <<
+                                            _flight.takeoffCoord.longitude() << " Alt: " <<
+                                            _flight.takeoffCoord.altitude();
+    qCInfo(AirMapFlightPlanManagerLog()) << "Bounding box - NW: " << _flight.bc.pointNW.latitude() << "," <<
+                                            _flight.bc.pointNW.longitude() << " SE: " <<
+                                            _flight.bc.pointSE.latitude() << _flight.bc.pointSE.longitude();
+    qCInfo(AirMapFlightPlanManagerLog()) << "Flight Start:" << flightStartTime().toString().toUtf8().constData();
+    qCInfo(AirMapFlightPlanManagerLog()) << "Flight Duration:  " << flightDuration();
 
     if (_shared.pilotID().isEmpty() && !_shared.settings().userName.isEmpty() && !_shared.settings().password.isEmpty()) {
         //-- Need to get the pilot id before uploading the flight plan
@@ -439,7 +448,7 @@ AirMapFlightPlanManager::_createFlightPlan()
 
     _flightPermitStatus = AirspaceFlightPlanProvider::PermitPending;
     emit flightPermitStatusChanged();
-    winDebug("AirmapFlightPlanManager: _flightPermitStatus = " << _flightPermitStatus);
+    qCInfo(AirMapFlightPlanManagerLog()) << "_flightPermitStatus = " << _flightPermitStatus;
 }
 
 //-----------------------------------------------------------------------------
@@ -611,10 +620,10 @@ AirMapFlightPlanManager::_updateFlightPlan(bool interactive)
     }
     _flightPlan.geometry = Geometry(polygon);
 
-    qCDebug(AirMapManagerLog) << "Takeoff:        " << _flight.takeoffCoord;
-    qCDebug(AirMapManagerLog) << "Bounding box:   " << _flight.bc.pointNW << _flight.bc.pointSE;
-    qCDebug(AirMapManagerLog) << "Flight Start:   " << flightStartTime().toString();
-    qCDebug(AirMapManagerLog) << "Flight Duration:" << flightDuration();
+    qCInfo(AirMapManagerLog) << "Takeoff:        " << _flight.takeoffCoord;
+    qCInfo(AirMapManagerLog) << "Bounding box:   " << _flight.bc.pointNW << _flight.bc.pointSE;
+    qCInfo(AirMapManagerLog) << "Flight Start:   " << flightStartTime().toString();
+    qCInfo(AirMapManagerLog) << "Flight Duration:" << flightDuration();
 
     _state = State::FlightUpdate;
     std::weak_ptr<LifetimeChecker> isAlive(_instance);
@@ -678,7 +687,7 @@ void
 AirMapFlightPlanManager::_pollBriefing()
 {
     qCDebug(AirMapManagerLog) << "Poll Briefing. State:" << static_cast<int>(_state);
-    winDebug("AirMapFlightPlanManager: Poll Briefing. State:" << static_cast<int>(_state));
+    qCInfo(AirMapFlightPlanManagerLog()) << "Poll Briefing. State:" << static_cast<int>(_state);
     if(_state != State::Idle) {
         QTimer::singleShot(100, this, &AirMapFlightPlanManager::_pollBriefing);
         return;
@@ -698,6 +707,7 @@ AirMapFlightPlanManager::_pollBriefing()
             _valid = false;
             _advisories.clearAndDeleteContents();
             const std::vector<Status::Advisory> advisories = briefing.airspace.advisories;
+            qCInfo(AirMapFlightPlanManagerLog()) << "Got briefing response from " << advisories.size() << "advisories";
             _airspaceColor = static_cast<AirspaceAdvisoryProvider::AdvisoryColor>(briefing.airspace.color);
             for (const auto& advisory : advisories) {
                 AirMapAdvisory* pAdvisory = new AirMapAdvisory(this);
@@ -706,7 +716,7 @@ AirMapFlightPlanManager::_pollBriefing()
                 pAdvisory->_type        = static_cast<AirspaceAdvisory::AdvisoryType>(advisory.airspace.type());
                 pAdvisory->_color       = static_cast<AirspaceAdvisoryProvider::AdvisoryColor>(advisory.color);
                 _advisories.append(pAdvisory);
-                qCDebug(AirMapManagerLog) << "Adding briefing advisory" << pAdvisory->name();
+                qCInfo(AirMapManagerLog) << "Adding briefing advisory" << pAdvisory->name();
             }
             //-- Sort in order of color (priority)
             _advisories.beginReset();
@@ -781,10 +791,12 @@ AirMapFlightPlanManager::_pollBriefing()
                 bool rejected = false;
                 bool accepted = false;
                 bool pending  = false;
+                qCInfo(AirMapFlightPlanManagerLog()) << "Number of authorization outcomes:"
+                                                     << briefing.evaluation.authorizations.size();
                 for (const auto& authorization : briefing.evaluation.authorizations) {
                     AirMapFlightAuthorization* pAuth = new AirMapFlightAuthorization(authorization, this);
                     _authorizations.append(pAuth);
-                    qCDebug(AirMapManagerLog) << "Autorization:" << pAuth->name() << " (" << pAuth->message() << ")" << static_cast<int>(pAuth->status());
+                    qCInfo(AirMapManagerLog) << "Autorization:" << pAuth->name() << " (" << pAuth->message() << ")" << static_cast<int>(pAuth->status());
                     switch (authorization.status) {
                     case Evaluation::Authorization::Status::accepted:
                     case Evaluation::Authorization::Status::accepted_upon_submission:
@@ -799,7 +811,7 @@ AirMapFlightPlanManager::_pollBriefing()
                         break;
                     }
                 }
-                qCDebug(AirMapManagerLog) << "Flight approval: accepted=" << accepted << "rejected" << rejected << "pending" << pending;
+                qCInfo(AirMapManagerLog) << "Flight approval: accepted=" << accepted << "rejected" << rejected << "pending" << pending;
                 if ((rejected || accepted) && !pending) {
                     if (rejected) { // rejected has priority
                         _flightPermitStatus = AirspaceFlightPlanProvider::PermitRejected;

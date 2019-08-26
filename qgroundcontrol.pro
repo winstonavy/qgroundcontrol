@@ -388,7 +388,6 @@ INCLUDEPATH += \
 #
 
 HEADERS += \
-    src/Airmap/manualauthenticate.h \
     src/api/QGCCorePlugin.h \
     src/api/QGCOptions.h \
     src/api/QGCSettings.h \
@@ -1249,3 +1248,6 @@ contains (CONFIG, QGC_DISABLE_INSTALLER_SETUP) {
 } else {
     include(QGCInstaller.pri)
 }
+
+DISTFILES += \
+    libs/airmapd/include/airmap/telemetry.proto

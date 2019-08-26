@@ -163,13 +163,13 @@ contains (DEFINES, DISABLE_AIRMAP) {
 } else:exists(user_config.pri):infile(user_config.pri, DEFINES, DISABLE_AIRMAP) {
     message("Skipping support for AirMap (manual override from user_config.pri)")
 } else {
-    AIRMAPD_PATH    = $$PWD/libs/airmapd
+    AIRMAPD_PATH    = /Users/Benjamin/airmaplib
     AIRMAP_QT_PATH  = Qt.$${QT_MAJOR_VERSION}.$${QT_MINOR_VERSION}
-    message(Looking for Airmap in $$AIRMAP_QT_PATH)
+    message(Looking for Airmap in $$AIRMAPD_PATH)
     MacBuild {
-        exists($${AIRMAPD_PATH}/macOS/$$AIRMAP_QT_PATH) {
+        exists($${AIRMAPD_PATH}/build/src/airmap/qt) {
             message("Including support for AirMap for macOS")
-            LIBS += -L$${AIRMAPD_PATH}/macOS/$$AIRMAP_QT_PATH -lairmap-qt
+            LIBS += -L$${AIRMAPD_PATH}/build/src/airmap/qt -lairmap-qt
             DEFINES += QGC_AIRMAP_ENABLED
         }
     } else:LinuxBuild {

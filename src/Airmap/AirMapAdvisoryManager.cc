@@ -63,7 +63,7 @@ adv_sort(QObject* a, QObject* b)
 void
 AirMapAdvisoryManager::_requestAdvisories()
 {
-    qCDebug(AirMapManagerLog) << "Advisories Request (ROI Changed)";
+    qCInfo(AirMapManagerLog) << "Advisories Request (ROI Changed)";
     if (!_shared.client()) {
         qCDebug(AirMapManagerLog) << "No AirMap client instance. Not updating Advisories";
         _valid = false;
@@ -115,7 +115,7 @@ AirMapAdvisoryManager::_requestAdvisories()
     _shared.client()->advisory().search(params, [this, isAlive](const Advisory::Search::Result& result) {
         if (!isAlive.lock()) return;
         if (result) {
-            qCDebug(AirMapManagerLog) << "Successful advisory search. Items:" << result.value().size();
+            qCInfo(AirMapManagerLog) << "Successful advisory search. Items:" << result.value().size();
             _airspaceColor = AirspaceAdvisoryProvider::Green;
             for (const auto& advisory : result.value()) {
                 AirMapAdvisory* pAdvisory = new AirMapAdvisory(this);
@@ -127,7 +127,7 @@ AirMapAdvisoryManager::_requestAdvisories()
                     _airspaceColor = pAdvisory->_color;
                 }
                 _advisories.append(pAdvisory);
-                qCDebug(AirMapManagerLog) << "Adding advisory" << pAdvisory->name();
+                qCInfo(AirMapManagerLog) << "Adding advisory" << pAdvisory->name();
             }
             //-- Sort in order of color (priority)
             _advisories.beginReset();
@@ -136,7 +136,7 @@ AirMapAdvisoryManager::_requestAdvisories()
             _valid = true;
         } else {
             QString description = QString::fromStdString(result.error().description() ? result.error().description().get() : "");
-            qCDebug(AirMapManagerLog) << "Advisories Request Failed" << QString::fromStdString(result.error().message()) << description;
+            qCInfo(AirMapManagerLog) << "Advisories Request Failed" << QString::fromStdString(result.error().message()) << description;
         }
         emit advisoryChanged();
     });

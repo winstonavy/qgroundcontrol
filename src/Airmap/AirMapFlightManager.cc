@@ -20,10 +20,6 @@
 #include "airmap/flight_plans.h"
 #include "airmap/geometry.h"
 
-#ifndef winDebug
-#define winDebug(x) std::cout << x << std::endl;
-#endif
-
 using namespace airmap;
 
 //-----------------------------------------------------------------------------

@@ -30,6 +30,8 @@ using namespace airmap;
 #define     PASSWORD                "intheskywithdiamonds"
 #define     SCOPE                   "openid"
 
+QGC_LOGGING_CATEGORY(AirMapSharedStateLog, "AirMapSharedStateLog")
+
 typedef enum {
     AUTH_SUCCESS,
     INVALID_CREDENTIALS,
@@ -45,10 +47,6 @@ std::pair<AuthStatus,std::string> authenticate(std::string api_key,
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
 std::string getData(std::string buffer, std::string data_header);
-
-#ifndef winDebug
-#define winDebug(x) std::cout << x << std::endl
-#endif
 
 void
 AirMapSharedState::setSettings(const Settings& settings)
@@ -77,13 +75,13 @@ void
 AirMapSharedState::login()
 {
     if (isLoggedIn() || _isLoginInProgress) {
-        winDebug("AirMapSharedState: Already Logged in");
+        qCInfo(AirMapSharedStateLog()) << "Already Logged in";
         return;
     }
     _isLoginInProgress = true;
-    winDebug("AirMapSharedState: Attempting to Log in");
+    qCInfo(AirMapSharedStateLog()) << "Attempting to Log in";
     if (_settings.userName == "") { //use anonymous login
-        qCDebug(AirMapManagerLog) << "Anonymous authentication";
+        qCDebug(AirMapSharedStateLog) << "Anonymous authentication";
         Authenticator::AuthenticateAnonymously::Params params;
         params.id = "Anonymous";
         _client->authenticator().authenticate_anonymously(params,
@@ -92,17 +90,15 @@ AirMapSharedState::login()
                 return;
             }
             if (result) {
-                qCDebug(AirMapManagerLog) << "Successfully authenticated with AirMap: id="<< result.value().id.c_str();
-                winDebug("AirMapSharedState: Successfully authenticated with AirMap: id="<< result.value().id.c_str());
+                qCInfo(AirMapSharedStateLog) << "Successfully authenticated with AirMap: id="<< result.value().id.c_str();
                 emit authStatus(AirspaceManager::AuthStatus::Anonymous);
                 _loginToken = QString::fromStdString(result.value().id);
-                winDebug("AirMapSharedState: Login Token: " << _loginToken.toUtf8().constData());
+                qCInfo(AirMapSharedStateLog()) << "Login Token: " << _loginToken.toUtf8().constData();
                 QJsonWebToken token = QJsonWebToken::fromTokenAndSecret(_loginToken, QString());
                 QJsonDocument doc = token.getPayloadJDoc();
                 QJsonObject json = doc.object();
                 _pilotID = json.value("sub").toString();
-                qCDebug(AirMapManagerLog) << "Anonymous pilot id:" << _pilotID;
-                winDebug("AirMapSharedState: Anonymous pilot id:" << _pilotID.toUtf8().constData());
+                qCInfo(AirMapSharedStateLog) << "Anonymous pilot id:" << _pilotID;
                 _processPendingRequests();
             } else {
                 _pendingRequests.clear();
@@ -110,7 +106,7 @@ AirMapSharedState::login()
                 QString description = QString::fromStdString(result.error().description() ? result.error().description().get() : "");
                 emit error("Failed to authenticate with AirMap",
                         QString::fromStdString(result.error().message()), description);
-                winDebug("AirMapSharedState: Failed to authenticate with AirMap:" << result.error().message());
+                qCInfo(AirMapSharedStateLog()) << "Failed to authenticate with AirMap:" << QString::fromStdString(result.error().message());
             }
         });
     } else {
@@ -119,20 +115,19 @@ AirMapSharedState::login()
         params.oauth.password = _settings.password.toStdString();
         params.oauth.client_id = _settings.clientID.toStdString();
         params.oauth.device_id = "QGroundControl";
-        qCDebug(AirMapManagerLog) << "User authentication" << _settings.userName;
-        winDebug("AirMapSharedState: User authentication " << _settings.userName.toUtf8().constData());
+        qCDebug(AirMapSharedStateLog) << "User authentication" << _settings.userName;
 //        _client->authenticator().authenticate_with_password(params,
 //                [this](const Authenticator::AuthenticateWithPassword::Result& result) {
 //            if (!_isLoginInProgress) { // was logout() called in the meanwhile?
 //                return;
 //            }
 //            if (result) {
-//                qCDebug(AirMapManagerLog) << "Successfully authenticated with AirMap: id="<< result.value().id.c_str()<<", access="
+//                qCDebug(AirMapSharedStateLog) << "Successfully authenticated with AirMap: id="<< result.value().id.c_str()<<", access="
 //                        <<result.value().access.c_str();
-//                winDebug("AirMapSharedState: Successfully authenticated with AirMap");
+//                qCInfo(AirMapSharedStateLog()) << "Successfully authenticated with AirMap";
 //                emit authStatus(AirspaceManager::AuthStatus::Authenticated);
 //                _loginToken = QString::fromStdString(result.value().id);
-////                winDebug(_loginToken.toUtf8().constData());
+////                qCInfo(AirMapSharedStateLog()) << _loginToken.toUtf8().constData();
 //                _processPendingRequests();
 //            } else {
 //                _pendingRequests.clear();
@@ -140,7 +135,7 @@ AirMapSharedState::login()
 //                emit authStatus(AirspaceManager::AuthStatus::Error);
 //                emit error("Failed to authenticate with AirMap",
 //                        QString::fromStdString(result.error().message()), description);
-//                winDebug("AirMapSharedState: Authentication failed.");
+//                qCInfo(AirMapSharedStateLog()) << "Authentication failed.";
 //            }
 //        });
         std::pair<AuthStatus,std::string> result;
@@ -150,7 +145,7 @@ AirMapSharedState::login()
                               _settings.userName.toStdString(),
                               _settings.password.toStdString());
         if (result.first == AUTH_SUCCESS) {
-            winDebug("AirMapSharedState: Successfully authenticated with AirMap");
+            qCInfo(AirMapSharedStateLog()) << "Successfully authenticated with AirMap";
             emit authStatus(AirspaceManager::AuthStatus::Authenticated);
             _loginToken = QString::fromStdString(getData(result.second,"access_token"));
             _processPendingRequests();
@@ -162,7 +157,7 @@ AirMapSharedState::login()
             emit error("Failed to authenticate with AirMap",QString("Something happened"),
                        QString("SOmething bad"));
                     //QString::fromStdString(static_cast<std::string>(result.first)), description);
-            winDebug("AirMapSharedState: Authentication failed.");
+            qCInfo(AirMapSharedStateLog()) << "Authentication failed.";
         }
     }
 }

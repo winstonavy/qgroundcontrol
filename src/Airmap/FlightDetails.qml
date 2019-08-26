@@ -106,13 +106,13 @@ Item {
                                 stepSize:       1
                                 enabled:        !QGroundControl.airspaceManager.flightPlan.flightStartsNow
                                 minimumValue:   0
-                                maximumValue:   95 // 96 blocks of 15 minutes in 24 hours
+                                maximumValue:   1440 // 96 blocks of 15 minutes in 24 hours
                                 anchors.left:   parent.left
                                 anchors.verticalCenter: parent.verticalCenter
                                 onValueChanged: {
                                     var today = QGroundControl.airspaceManager.flightPlan.flightStartTime
-                                    today.setHours(Math.floor(timeSlider.value * 0.25))
-                                    today.setMinutes((timeSlider.value * 15) % 60)
+                                    today.setHours(Math.floor(timeSlider.value / 60))
+                                    today.setMinutes((timeSlider.value * 1) % 60)
                                     today.setSeconds(0)
                                     today.setMilliseconds(0)
                                     QGroundControl.airspaceManager.flightPlan.flightStartTime = today
@@ -133,8 +133,8 @@ Item {
                                 width:          ScreenTools.defaultFontPixelWidth * 5
                                 anchors.right:  parent.right
                                 anchors.verticalCenter: parent.verticalCenter
-                                property int hour:   Math.floor(timeSlider.value * 0.25)
-                                property int minute: (timeSlider.value * 15) % 60
+                                property int hour:   Math.floor(timeSlider.value / 60)
+                                property int minute: (timeSlider.value * 1) % 60
                             }
                         }
                         QGCLabel {
@@ -154,12 +154,12 @@ Item {
                                 width:          parent.width - durationLabel.width - ScreenTools.defaultFontPixelWidth
                                 stepSize:       1
                                 minimumValue:   1
-                                maximumValue:   24 // 24 blocks of 15 minutes in 6 hours
+                                maximumValue:   360 // 24 blocks of 15 minutes in 6 hours
                                 anchors.left:  parent.left
                                 anchors.verticalCenter: parent.verticalCenter
                                 onValueChanged: {
-                                    var hour   = Math.floor(durationSlider.value * 0.25)
-                                    var minute = (durationSlider.value * 15) % 60
+                                    var hour   = Math.floor(durationSlider.value / 60)
+                                    var minute = (durationSlider.value * 1) % 60
                                     var seconds = (hour * 60 * 60) + (minute * 60)
                                     QGroundControl.airspaceManager.flightPlan.flightDuration = seconds
                                 }
@@ -175,8 +175,8 @@ Item {
                                 width:          ScreenTools.defaultFontPixelWidth * 5
                                 anchors.right:  parent.right
                                 anchors.verticalCenter: parent.verticalCenter
-                                property int hour:   Math.floor(durationSlider.value * 0.25)
-                                property int minute: (durationSlider.value * 15) % 60
+                                property int hour:   Math.floor(durationSlider.value / 60)
+                                property int minute: (durationSlider.value * 1) % 60
                             }
                         }
                     }

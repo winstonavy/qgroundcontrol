@@ -22,11 +22,6 @@
 #include <QAbstractListModel>
 #include <QDebug>
 
-#ifndef winDebug
-#include <iostream>
-#define winDebug(x) std::cout << x << std::endl;
-#endif
-
 class PlanMasterController;
 class AirspaceFlightInfo;
 

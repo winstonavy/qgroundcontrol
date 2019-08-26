@@ -380,6 +380,18 @@ Item {
                     planView ? flightDetails.open() : flightBrief.open()
                 }
             }
+            QGCButton {
+                text:           "End Flight"
+                backRadius:     4
+                heightFactor:   0.3333
+                showBorder:     true
+                width:          ScreenTools.defaultFontPixelWidth * 16
+                visible:        _flightID().isEmpty()
+                anchors.horizontalCenter: parent.horizontalCenter
+                onClicked: {
+                    QGroundControl.airspaceManager.flightPlan.endCurrentFlight()
+                }
+            }
             QGCLabel {
                 text:           qsTr("Powered by <b>AIRMAP</b>")
                 color:          _textColor

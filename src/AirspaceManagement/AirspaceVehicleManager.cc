@@ -12,11 +12,8 @@
 #include "AirspaceVehicleManager.h"
 #include "Vehicle.h"
 #include "MissionItem.h"
-#include <iostream>
 
-#ifndef winDebug
-#define winDebug(x) std::cout << x << std::endl;
-#endif
+QGC_LOGGING_CATEGORY(AirMapVehicleManagerLog, "AirMapVehicleManagerLog")
 
 AirspaceVehicleManager::AirspaceVehicleManager(const Vehicle& vehicle)
     : _vehicle(vehicle)
@@ -28,21 +25,21 @@ AirspaceVehicleManager::AirspaceVehicleManager(const Vehicle& vehicle)
 
 void AirspaceVehicleManager::_vehicleArmedChanged(bool armed)
 {
-    winDebug("AirspaceVehicleManager: Armed changed detected");
     if (armed) {
-        winDebug("AirspaceVehicleManager: Armed");
+        qCInfo(AirMapVehicleManagerLog()) << "Armed";
         qCDebug(AirspaceManagementLog) << "Starting telemetry";
         startTelemetryStream();
         _vehicleWasInMissionMode = _vehicle.flightMode() == _vehicle.missionFlightMode();
     } else {
-        winDebug("AirspaceVehicleManager: Disarmed");
+        qCInfo(AirMapVehicleManagerLog()) << "Disarmed";
         qCDebug(AirspaceManagementLog) << "Stopping telemetry";
         stopTelemetryStream();
         // end the flight if we were in mission mode during arming or disarming
         // TODO: needs to be improved. for instance if we do RTL and then want to continue the mission...
-        if (_vehicleWasInMissionMode || _vehicle.flightMode() == _vehicle.missionFlightMode()) {
+        //if (_vehicleWasInMissionMode || _vehicle.flightMode() == _vehicle.missionFlightMode()) {
+            qCInfo(AirspaceManagementLog()) << "Ending Flight on AirMap";
             endFlight();
-        }
+        //}
     }
 }
 

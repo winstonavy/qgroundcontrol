@@ -24,11 +24,6 @@
 #include <QJsonDocument>
 #include <QFileInfo>
 
-#ifndef winDebug
-#include <iostream>
-#define winDebug(x) std::cout << x << std::endl;
-#endif
-
 QGC_LOGGING_CATEGORY(PlanMasterControllerLog, "PlanMasterControllerLog")
 
 const int   PlanMasterController::kPlanFileVersion =            1;

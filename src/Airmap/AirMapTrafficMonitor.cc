@@ -32,7 +32,7 @@ AirMapTrafficMonitor::startConnection(const QString& flightID)
         return;
     }
     _flightID = flightID;
-    qCDebug(AirMapManagerLog) << "Traffic update started for" << flightID;
+    qCInfo(AirMapManagerLog) << "Traffic update started for" << flightID;
     std::weak_ptr<LifetimeChecker> isAlive(_instance);
     auto handler = [this, isAlive](const Traffic::Monitor::Result& result) {
         if (!isAlive.lock()) return;

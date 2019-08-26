@@ -15,11 +15,9 @@
 #include "airmap/telemetry.h"
 #include "airmap/flights.h"
 
-#ifndef winDebug
-#define winDebug(x) std::cout << x << std::endl;
-#endif
-
 using namespace airmap;
+
+QGC_LOGGING_CATEGORY(AirMapTelemetryLog, "AirMapTelemetryLog")
 
 //-----------------------------------------------------------------------------
 AirMapTelemetry::AirMapTelemetry(AirMapSharedState& shared)
@@ -94,7 +92,7 @@ AirMapTelemetry::_handleGlobalPositionInt(const mavlink_message_t& message)
         globalPosition.vz / 100.f
     };
 
-    //qCDebug(AirMapManagerLog) << "Telemetry:" << globalPosition.lat / 1e7 << globalPosition.lon / 1e7;
+    qCInfo(AirMapManagerLog) << "Telemetry:" << globalPosition.lat / 1e7 << globalPosition.lon / 1e7;
     Flight flight;
     flight.id = _flightID.toStdString();
     _shared.client()->telemetry().submit_updates(flight, _key,
@@ -105,7 +103,6 @@ AirMapTelemetry::_handleGlobalPositionInt(const mavlink_message_t& message)
 void
 AirMapTelemetry::startTelemetryStream(const QString& flightID)
 {
-    winDebug("AirMapTelemetry: Transmitting Telemetry");
     if (_state != State::Idle) {
         qCWarning(AirMapManagerLog) << "Not starting telemetry: not in idle state:" << static_cast<int>(_state);
         return;
@@ -124,15 +121,17 @@ AirMapTelemetry::startTelemetryStream(const QString& flightID)
     _shared.client()->flights().start_flight_communications(params, [this, isAlive](const Flights::StartFlightCommunications::Result& result) {
         if (!isAlive.lock()) return;
         if (_state != State::StartCommunication) return;
-//        if (result) {
+        if (result) {
             _key = result.value().key;
             _state = State::Streaming;
-//        } else {
-//            _state = State::Idle;
-//            QString description = QString::fromStdString(result.error().description() ? result.error().description().get() : "");
-//            emit error("Failed to start telemetry streaming",
-//                    QString::fromStdString(result.error().message()), description);
-//        }
+        } else {
+            _state = State::Idle;
+            QString description = QString::fromStdString(result.error().description() ? result.error().description().get() : "");
+            emit error("Failed to start telemetry streaming",
+                    QString::fromStdString(result.error().message()), description);
+            qCInfo(AirMapTelemetryLog()) << "Failed to start telemetry streaming" <<
+                                            QString::fromStdString(result.error().message()) << description;
+        }
     });
     _timerLastSent.start();
 }
@@ -145,7 +144,6 @@ AirMapTelemetry::stopTelemetryStream()
         return;
     }
     qCInfo(AirMapManagerLog) << "Stopping Telemetry stream with flightID" << _flightID;
-    winDebug("Stopping Telemetry stream with flightID" << _flightID.toUtf8().constData());
     _state = State::EndCommunication;
     Flights::EndFlightCommunications::Parameters params;
     params.authorization = _shared.loginToken().toStdString();
